@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pill-rina-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "5173", "src"],
+      "port": 5173
+    }
+  ]
+}

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#E9F3FF" />
+  <title>Rina Pill Watcher</title>
+  <link rel="icon" href="icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ── TODAY SCREEN ─────────────────────────────────────── -->
+  <div class="screen" id="screen-home">
+    <div class="header">
+      <div>
+        <span class="eyebrow" data-i18n="today_eyebrow">Today's care</span>
+        <h1 data-i18n="today_title">Today</h1>
+        <div class="sub" id="home-date"></div>
+      </div>
+      <button class="btn-icon" id="home-refresh-btn" title="Refresh">↻</button>
+    </div>
+
+    <!-- cute running band -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track" id="marquee-track"></div>
+    </div>
+
+    <div class="screen-body">
+      <div class="greeting">
+        <img class="logo" src="icon.png" alt="" />
+        <div class="g-text">
+          <div class="g-hi" id="greet-hi">Hi, Rina ♡</div>
+          <div class="g-sub" id="greet-sub"></div>
+        </div>
+      </div>
+
+      <div class="day-summary" id="day-summary"></div>
+
+      <div id="pending-alerts"></div>
+      <div id="today-list" class="dose-list"></div>
+    </div>
+    <button class="fab" id="fab-add">+</button>
+  </div>
+
+  <!-- ── MEDS LIST SCREEN ──────────────────────────────────── -->
+  <div class="screen" id="screen-meds">
+    <div class="header">
+      <div>
+        <span class="eyebrow" data-i18n="meds_eyebrow">Rina's shelf</span>
+        <h1 data-i18n="meds_title">Medications</h1>
+      </div>
+      <button class="btn btn-primary btn-sm" id="meds-add-btn" data-i18n="add_btn">+ Add</button>
+    </div>
+    <div class="screen-body">
+      <div id="meds-list"></div>
+    </div>
+  </div>
+
+  <!-- ── ADD / EDIT MED SCREEN ─────────────────────────────── -->
+  <div class="screen" id="screen-edit-med">
+    <div class="header">
+      <button class="btn-icon" id="edit-back-btn">←</button>
+      <h1 id="edit-title" data-i18n="new_med">New Medication</h1>
+      <button class="btn-icon" id="edit-delete-btn" style="display:none">🗑</button>
+    </div>
+    <div class="screen-body">
+      <div class="form-group">
+        <label class="form-label" data-i18n="med_name">Medication Name</label>
+        <input id="edit-name" class="form-input" type="text" data-i18n-ph="med_name_ph" placeholder="e.g. Vitamin D" maxlength="60" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="notes_label">Notes (optional)</label>
+        <textarea id="edit-notes" class="form-textarea" data-i18n-ph="notes_ph" placeholder="e.g. Take with food"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="color_label">Color</label>
+        <div class="color-picker" id="color-picker"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="reminders_label">Reminders</label>
+        <div class="schedule-list" id="edit-schedules"></div>
+
+        <div class="card" style="padding:15px">
+          <div class="form-label" style="margin-bottom:10px" data-i18n="add_time_label">Add reminder time</div>
+          <div class="add-time-row">
+            <input type="time" id="new-time-input" value="08:00" />
+            <button class="btn btn-primary btn-sm" id="add-time-btn" data-i18n="add_short">Add</button>
+          </div>
+
+          <div style="margin-top:16px">
+            <div class="form-label" style="margin-bottom:8px" data-i18n="days_label">Days</div>
+            <div class="day-chips" id="new-day-chips">
+              <div class="day-chip active" data-idx="0" data-day="mon">M</div>
+              <div class="day-chip active" data-idx="1" data-day="tue">T</div>
+              <div class="day-chip active" data-idx="2" data-day="wed">W</div>
+              <div class="day-chip active" data-idx="3" data-day="thu">T</div>
+              <div class="day-chip active" data-idx="4" data-day="fri">F</div>
+              <div class="day-chip active" data-idx="5" data-day="sat">S</div>
+              <div class="day-chip active" data-idx="6" data-day="sun">S</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px">
+            <div class="form-label" style="margin-bottom:8px" data-i18n="remind_every">Remind every</div>
+            <div class="interval-options" id="new-interval-opts">
+              <button class="interval-btn" data-val="5">5 min</button>
+              <button class="interval-btn active" data-val="10">10 min</button>
+              <button class="interval-btn" data-val="15">15 min</button>
+              <button class="interval-btn" data-val="30">30 min</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="edit-save-btn" data-i18n="save">Save</button>
+      <div style="height:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY SCREEN ────────────────────────────────────── -->
+  <div class="screen" id="screen-history">
+    <div class="header">
+      <div>
+        <span class="eyebrow" data-i18n="history_eyebrow">Last 30 days</span>
+        <h1 data-i18n="history_title">History</h1>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="heatmap" id="heatmap"></div>
+      <div class="heatmap-legend">
+        <span><span class="legend-dot" style="background:var(--ok)"></span><span data-i18n="legend_all">All taken</span></span>
+        <span><span class="legend-dot" style="background:var(--warn)"></span><span data-i18n="legend_partial">Partial</span></span>
+        <span><span class="legend-dot" style="background:var(--danger)"></span><span data-i18n="legend_missed">Missed</span></span>
+        <span><span class="legend-dot" style="background:var(--surface);border:1px solid var(--edge)"></span><span data-i18n="legend_none">None</span></span>
+      </div>
+      <div class="history-log" id="history-log"></div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS SCREEN ───────────────────────────────────── -->
+  <div class="screen" id="screen-settings">
+    <div class="header">
+      <div>
+        <span class="eyebrow" data-i18n="settings_eyebrow">For Rina</span>
+        <h1 data-i18n="settings_title">Settings</h1>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="settings-section">
+        <div class="settings-section-title" data-i18n="language">Language</div>
+        <div class="lang-toggle" id="lang-toggle">
+          <button class="lang-btn" data-lang="en">English</button>
+          <button class="lang-btn" data-lang="ja">日本語</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title" data-i18n="quiet_hours">Quiet Hours</div>
+        <div class="card" style="padding:15px">
+          <div class="text-secondary text-sm" style="margin-bottom:14px" data-i18n="quiet_desc">No notifications during quiet hours.</div>
+          <div class="settings-row" style="box-shadow:none;background:var(--surface-hi)">
+            <span class="settings-row-label" data-i18n="start">Start</span>
+            <input type="time" id="settings-quiet-start" value="23:00" />
+          </div>
+          <div class="settings-row" style="box-shadow:none;background:var(--surface-hi);margin-bottom:0">
+            <span class="settings-row-label" data-i18n="end">End</span>
+            <input type="time" id="settings-quiet-end" value="07:00" />
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title" data-i18n="default_interval">Default Reminder Interval</div>
+        <div class="card" style="padding:15px">
+          <div class="text-secondary text-sm" style="margin-bottom:14px" data-i18n="interval_desc">How often to re-notify until a dose is confirmed.</div>
+          <div class="interval-options" id="settings-interval-opts">
+            <button class="interval-btn" data-val="5">5 min</button>
+            <button class="interval-btn active" data-val="10">10 min</button>
+            <button class="interval-btn" data-val="15">15 min</button>
+            <button class="interval-btn" data-val="30">30 min</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="settings-save-btn" data-i18n="save_settings">Save Settings</button>
+
+      <div class="settings-section" style="margin-top:28px">
+        <div class="settings-section-title" data-i18n="about">About</div>
+        <div class="card about-card">
+          <img class="logo" src="icon.png" alt="" />
+          <div class="name">Rina Pill Watcher</div>
+          <div class="ver">v0.1.0 · Rust + Tauri</div>
+          <div class="love" id="about-love">Made with love for Rina ♡</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bottom navigation ─────────────────────────────────── -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="home">
+      <span class="icon">🏠</span><span data-i18n="nav_today">Today</span>
+    </button>
+    <button class="nav-item" data-screen="meds">
+      <span class="icon">💊</span><span data-i18n="nav_meds">Meds</span>
+    </button>
+    <button class="nav-item" data-screen="history">
+      <span class="icon">📅</span><span data-i18n="nav_history">History</span>
+    </button>
+    <button class="nav-item" data-screen="settings">
+      <span class="icon">⚙️</span><span data-i18n="nav_settings">Settings</span>
+    </button>
+  </nav>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── Confirm delete modal ───────────────────────────────── -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="delete_title">Delete Medication?</div>
+    <div class="text-secondary text-sm" style="margin-bottom:20px" data-i18n="delete_desc">
+      This will remove all schedules and logs for this medication.
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1" id="delete-cancel-btn" data-i18n="cancel">Cancel</button>
+      <button class="btn btn-danger" style="flex:1" id="delete-confirm-btn" data-i18n="delete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
