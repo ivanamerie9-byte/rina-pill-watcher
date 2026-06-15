@@ -32,6 +32,18 @@ vanilla JS frontend, Android target.
 - [x] Verify in browser preview (no console errors, theme + EN/JA + flows confirmed)
 - [x] Push to **private GitHub repo**, share link
 
+## Phase 2 — turnkey Android build ✅
+- [x] Install toolchain: JDK 21, Android SDK platform-36, build-tools 36, NDK 27
+- [x] **Wire native Kotlin alarm system turnkey** (exact alarms + boot reschedule +
+      notification actions + quiet hours + WorkManager re-notify)
+  - [x] **Fix DB path bug**: `PillDatabase` now opens the same file Rust uses
+        (`activity.dataDir/pill_rina.db`), not the default `databases/` sub-dir
+  - [x] Harden plugin load; disable R8 minify for release (keep native classes)
+- [x] Build **signed release APK** (arm64-v8a, Android 8.0+) — `cargo` + Gradle, apksigner
+- [x] Publish to GitHub **release v0.1.0** with the APK attached; link in README + repo description
+
 ## Notes
 - Frontend talks to Rust via `window.__TAURI__.core.invoke`; falls back to localStorage mock in browser.
-- APK build (JDK/Android SDK) is out of scope for tonight; focus is code + design + repo.
+- On Android the web frontend is embedded inside `libpill_rina_lib.so` (Tauri default).
+- Signing keystore (`rina-release.keystore`, pass `rina-pill-2026`) is kept **out of the repo** (gitignored).
+- Release: https://github.com/ivanamerie9-byte/rina-pill-watcher/releases/tag/v0.1.0
