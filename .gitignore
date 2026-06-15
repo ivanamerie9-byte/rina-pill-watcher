@@ -12,8 +12,14 @@ dist/
 # Gradle
 .gradle/
 *.apk
+*.apk.idsig
 *.aab
 local.properties
+
+# Signing secrets — never commit
+*.keystore
+*.jks
+keystore.properties
 
 # OS / editor
 .DS_Store

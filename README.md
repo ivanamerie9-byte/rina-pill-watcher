@@ -10,6 +10,13 @@ outline-stroke emphasis, mono labels, and a calm, rounded layout.
    ໒꒰ྀི｡• ᵕ •｡꒱ྀི১   tiny habits, big love
 ```
 
+## 📥 Download
+
+**[➜ Get the latest Android APK](https://github.com/ivanamerie9-byte/rina-pill-watcher/releases/latest)**
+· signed · arm64-v8a · Android 8.0+ (`v0.1.0`, ~11 MB)
+
+Enable "install from unknown sources", then open the `.apk` to install. ♡
+
 ## Features
 
 - **Today** — daily dose timeline with a friendly greeting, a quick day summary

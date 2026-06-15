@@ -4,17 +4,26 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import java.io.File
 
 /**
- * Read/write access to the same SQLite file Rust uses.
- * Rust creates the file at context.filesDir/pill_rina.db.
+ * Read/write access to the *same* SQLite file Rust uses.
+ *
+ * Tauri's `app_data_dir()` resolves to `activity.dataDir` on Android
+ * (`PathPlugin.getDataDir` -> `/data/data/<pkg>`), and the Rust side opens
+ * `app_data_dir/pill_rina.db`. We pass that absolute path as the helper "name"
+ * so SQLiteOpenHelper opens the exact same file (an absolute name bypasses the
+ * default `databases/` sub-directory). minSdk 26 guarantees Context.dataDir.
  */
 class PillDatabase private constructor(context: Context) :
-    SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
+    SQLiteOpenHelper(context, dbPath(context), null, DB_VERSION) {
 
     companion object {
         private const val DB_VERSION = 1
         const val DB_NAME = "pill_rina.db"
+
+        private fun dbPath(context: Context): String =
+            File(context.applicationContext.dataDir, DB_NAME).absolutePath
 
         @Volatile private var instance: PillDatabase? = null
 

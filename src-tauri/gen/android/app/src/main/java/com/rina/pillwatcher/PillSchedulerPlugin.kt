@@ -27,7 +27,10 @@ class PillSchedulerPlugin(private val activity: Activity) : Plugin(activity) {
     override fun load(webView: WebView) {
         super.load(webView)
         PillAlarmReceiver.createChannel(activity)
-        rescheduleAll()
+        // The Rust side creates the DB + schema on startup; if the plugin loads
+        // before that (or the DB is briefly locked) just skip — we reschedule on
+        // every resume anyway.
+        try { rescheduleAll() } catch (e: Exception) { /* will retry on next load */ }
     }
 
     /** Schedule all future pending dose logs from DB. */

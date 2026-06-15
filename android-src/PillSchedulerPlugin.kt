@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.webkit.WebView
 import app.tauri.annotation.Command
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
@@ -14,7 +15,7 @@ import androidx.work.WorkManager
 /**
  * Tauri plugin registered in MainActivity.
  * On load: reads all pending dose logs from DB and registers AlarmManager alarms.
- * Also exposes Tauri commands for Rust to schedule/cancel individual alarms.
+ * Also exposes Tauri commands for scheduling/cancelling individual alarms.
  */
 @TauriPlugin
 class PillSchedulerPlugin(private val activity: Activity) : Plugin(activity) {
@@ -22,11 +23,14 @@ class PillSchedulerPlugin(private val activity: Activity) : Plugin(activity) {
     private val alarmManager: AlarmManager
         get() = activity.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    /** Called by Tauri when the plugin is loaded (app start / resume). */
-    override fun load() {
-        super.load()
+    /** Called by Tauri when WebView is ready (app start / resume). */
+    override fun load(webView: WebView) {
+        super.load(webView)
         PillAlarmReceiver.createChannel(activity)
-        rescheduleAll()
+        // The Rust side creates the DB + schema on startup; if the plugin loads
+        // before that (or the DB is briefly locked) just skip — we reschedule on
+        // every resume anyway.
+        try { rescheduleAll() } catch (e: Exception) { /* will retry on next load */ }
     }
 
     /** Schedule all future pending dose logs from DB. */
@@ -69,8 +73,11 @@ class PillSchedulerPlugin(private val activity: Activity) : Plugin(activity) {
     /** scheduleAlarm({ dose_log_id: Long, time_ms: Long }) */
     @Command
     fun scheduleAlarm(invoke: Invoke) {
-        val logId  = invoke.getLong("dose_log_id") ?: run { invoke.reject("missing dose_log_id"); return }
-        val timeMs = invoke.getLong("time_ms")     ?: run { invoke.reject("missing time_ms"); return }
+        val args = invoke.getArgs()
+        val logId  = args.optLong("dose_log_id", -1L)
+        val timeMs = args.optLong("time_ms", -1L)
+        if (logId == -1L) { invoke.reject("missing dose_log_id"); return }
+        if (timeMs == -1L) { invoke.reject("missing time_ms"); return }
 
         val intent = Intent(activity, PillAlarmReceiver::class.java).apply {
             putExtra(PillAlarmReceiver.EXTRA_LOG_ID, logId)
@@ -86,7 +93,8 @@ class PillSchedulerPlugin(private val activity: Activity) : Plugin(activity) {
     /** cancelDoseAlarms({ dose_log_id: Long }) */
     @Command
     fun cancelDoseAlarms(invoke: Invoke) {
-        val logId = invoke.getLong("dose_log_id") ?: run { invoke.reject("missing dose_log_id"); return }
+        val logId = invoke.getArgs().optLong("dose_log_id", -1L)
+        if (logId == -1L) { invoke.reject("missing dose_log_id"); return }
 
         // Cancel AlarmManager
         val intent = Intent(activity, PillAlarmReceiver::class.java)
