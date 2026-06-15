@@ -4,7 +4,15 @@
    Rina Pill Watcher — app logic ♡
    Talks to the Rust backend via Tauri; falls back to a localStorage mock in
    a plain browser so the UI can be previewed during development.
+
+   Wrapped in an IIFE with a load guard: the Android WebView can evaluate this
+   file twice (on resume / asset re-serve), and top-level `const`s would then
+   throw "Identifier already declared", killing all interactivity. Function
+   scope + the guard make a second evaluation a harmless no-op.
    ========================================================================== */
+(function () {
+if (window.__RINA_APP__) return;
+window.__RINA_APP__ = true;
 
 // ── Tauri bridge ────────────────────────────────────────────────────────────
 // Resolve the real invoke defensively: with `withGlobalTauri` it lives at
@@ -651,3 +659,5 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+})();

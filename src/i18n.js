@@ -6,7 +6,7 @@
    element carrying data-i18n (text) or data-i18n-ph (placeholder).
    ========================================================================== */
 
-const I18N = (() => {
+window.I18N = window.I18N || (() => {
   const NAME = 'Rina';
 
   const strings = {
