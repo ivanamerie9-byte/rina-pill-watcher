@@ -7,9 +7,17 @@
    ========================================================================== */
 
 // ── Tauri bridge ────────────────────────────────────────────────────────────
-const isTauri = typeof window.__TAURI__ !== 'undefined';
+// Resolve the real invoke defensively: with `withGlobalTauri` it lives at
+// window.__TAURI__.core.invoke, but fall back to the internals binding so a
+// missing namespace never throws at load time and blanks the whole app.
+const G = window;
+const realInvoke =
+  (G.__TAURI__ && G.__TAURI__.core && G.__TAURI__.core.invoke) ||
+  (G.__TAURI_INTERNALS__ && G.__TAURI_INTERNALS__.invoke) ||
+  null;
+const isTauri = !!realInvoke;
 const invoke = isTauri
-  ? window.__TAURI__.core.invoke
+  ? (cmd, args) => realInvoke(cmd, args)
   : async (cmd, args) => { console.log('[mock invoke]', cmd, args); return mockData(cmd, args); };
 
 function mockData(cmd) {
@@ -24,7 +32,7 @@ function mockData(cmd) {
 }
 
 // ── Notifications ───────────────────────────────────────────────────────────
-const Notif = isTauri ? window.__TAURI__.notification : null;
+const Notif = (G.__TAURI__ && G.__TAURI__.notification) || null;
 let notifPermission = false;
 
 async function requestNotifPermission() {
@@ -528,8 +536,14 @@ async function checkAndNotify() {
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 function init() {
-  I18N.apply();
-  buildMarquee();
+  try { I18N.apply(); } catch (e) { console.error('i18n', e); }
+  try { buildMarquee(); } catch (e) { console.error('marquee', e); }
+
+  // Activate the home screen right away so the user always sees styled content,
+  // even if a later wiring step throws.
+  navigate('home');
+
+  try {
   requestNotifPermission();
 
   selectedColor = COLORS[0];
@@ -626,7 +640,14 @@ function init() {
   });
 
   setInterval(checkAndNotify, 60_000);
-  navigate('home');
+  } catch (e) {
+    console.error('init wiring failed', e);
+    showToast('Init error: ' + (e && e.message ? e.message : e));
+  }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

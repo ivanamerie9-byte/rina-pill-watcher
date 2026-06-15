@@ -2,17 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#E9F3FF" />
   <title>Rina Pill Watcher</title>
   <link rel="icon" href="icon.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+<!-- On-device safety net: surface any uncaught error instead of a blank screen -->
+<script>
+  window.addEventListener('error', function (e) {
+    if (!document.body) return;
+    var d = document.getElementById('fatal');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = 'fatal';
+      d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#EC5B6A;color:#fff;font:11px monospace;padding:8px 10px;max-height:45%;overflow:auto;white-space:pre-wrap';
+      document.body.appendChild(d);
+    }
+    d.textContent += (e.message || 'error') + '  @' + ((e.filename||'').split('/').pop()) + ':' + (e.lineno||'?') + '\n';
+  });
+</script>
+
 <div id="app">
 
   <!-- ── TODAY SCREEN ─────────────────────────────────────── -->
-  <div class="screen" id="screen-home">
+  <div class="screen active" id="screen-home">
     <div class="header">
       <div>
         <span class="eyebrow" data-i18n="today_eyebrow">Today's care</span>

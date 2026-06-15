@@ -57,8 +57,11 @@
   --radius-sm:  12px;
   --r-pill:     999px;
   --nav-height: 66px;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-top:    env(safe-area-inset-top, 0px);
+  /* Android targetSdk 36 forces edge-to-edge; viewport-fit=cover feeds these
+     real system-bar insets. Fallbacks clear a typical status/nav bar even if a
+     WebView reports none. */
+  --safe-bottom: env(safe-area-inset-bottom, 10px);
+  --safe-top:    env(safe-area-inset-top, 26px);
 
   --shadow-sm: 0 1px 3px rgba(41,117,253,0.07);
   --shadow-md: 0 4px 16px rgba(41,117,253,0.12), 0 1px 3px rgba(21,36,62,0.05);
