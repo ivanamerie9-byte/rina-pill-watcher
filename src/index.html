@@ -146,14 +146,19 @@
       </div>
     </div>
     <div class="screen-body">
-      <div class="heatmap" id="heatmap"></div>
-      <div class="heatmap-legend">
+      <div class="cal-head">
+        <button class="btn-icon" id="cal-prev" aria-label="Previous month">‹</button>
+        <div class="cal-title" id="cal-title"></div>
+        <button class="btn-icon" id="cal-next" aria-label="Next month">›</button>
+      </div>
+      <div class="cal-weekdays" id="cal-weekdays"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="heatmap-legend cal-legend">
         <span><span class="legend-dot" style="background:var(--ok)"></span><span data-i18n="legend_all">All taken</span></span>
         <span><span class="legend-dot" style="background:var(--warn)"></span><span data-i18n="legend_partial">Partial</span></span>
         <span><span class="legend-dot" style="background:var(--danger)"></span><span data-i18n="legend_missed">Missed</span></span>
-        <span><span class="legend-dot" style="background:var(--surface);border:1px solid var(--edge)"></span><span data-i18n="legend_none">None</span></span>
       </div>
-      <div class="history-log" id="history-log"></div>
+      <div class="cal-hint text-secondary text-sm" data-i18n="cal_hint">Tap a coloured day to see details ♡</div>
     </div>
   </div>
 
@@ -248,6 +253,16 @@
       <button class="btn btn-ghost" style="flex:1" id="delete-cancel-btn" data-i18n="cancel">Cancel</button>
       <button class="btn btn-danger" style="flex:1" id="delete-confirm-btn" data-i18n="delete">Delete</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Day detail sheet (History calendar) ────────────────── -->
+<div class="modal-overlay" id="day-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="day-modal-title"></div>
+    <div id="day-modal-body"></div>
+    <button class="btn btn-ghost btn-full" id="day-modal-close" data-i18n="close">Close</button>
   </div>
 </div>
 

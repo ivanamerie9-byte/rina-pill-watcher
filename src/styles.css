@@ -485,47 +485,55 @@ body::before {
 .divider { height: 1px; background: var(--line); margin: 14px 0; }
 
 /* ── HISTORY ─────────────────────────────────────────────────────────────── */
-.heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 16px; }
-.heatmap-cell { aspect-ratio: 1; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); }
-.heatmap-cell.green  { background: var(--ok); border-color: transparent; }
-.heatmap-cell.yellow { background: var(--warn); border-color: transparent; }
-.heatmap-cell.red    { background: var(--danger); opacity: 0.7; border-color: transparent; }
-.heatmap-cell.empty  { background: var(--surface); opacity: 0.55; }
+/* Apple-like month calendar */
+.cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin: 2px 0 16px;
+}
+.cal-title {
+  font-family: var(--display); font-size: 21px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: -0.01em; text-align: center; flex: 1;
+}
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
+.cal-weekday {
+  text-align: center;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3);
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-cell { aspect-ratio: 1; min-width: 0; display: flex; align-items: center; justify-content: center; }
+.cal-cell.blank { visibility: hidden; }
+.cal-day {
+  width: 100%; max-width: 46px; aspect-ratio: 1; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700;
+  font-size: clamp(11px, 3.3vw, 15px);
+  color: var(--fg);
+  transition: transform 0.1s var(--ease);
+}
+.cal-day.future { color: var(--fg-3); }
+.cal-day.has { color: #fff; cursor: pointer; box-shadow: var(--shadow-sm); }
+.cal-day.has:active { transform: scale(0.9); }
+.cal-day.all     { background: var(--ok); }
+.cal-day.partial { background: var(--warn); }
+.cal-day.missed  { background: var(--danger); }
+.cal-day.skip    { background: var(--fg-3); }
+.cal-day.today { outline: 2px solid var(--signal); outline-offset: 2px; }
 
 .heatmap-legend {
-  display: flex; gap: 14px; flex-wrap: wrap;
+  display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
   font-family: var(--mono); font-size: 11px; color: var(--fg-2);
-  margin-bottom: 20px;
 }
-.legend-dot { width: 11px; height: 11px; border-radius: 4px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+.legend-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 5px; }
+.cal-legend { margin-top: 20px; }
+.cal-hint { text-align: center; margin-top: 12px; }
 
-.log-day-header {
-  font-family: var(--mono);
-  font-size: 11px; font-weight: 700;
-  color: var(--fg-3);
-  text-transform: uppercase; letter-spacing: 0.08em;
-  padding: 12px 0 7px;
-}
-.log-item {
-  display: flex; align-items: center; gap: 11px;
-  padding: 11px 14px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  margin-bottom: 7px;
-  box-shadow: var(--shadow-sm);
-}
-.log-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.log-item.taken   .log-dot { background: var(--ok); }
-.log-item.skipped .log-dot { background: var(--fg-3); }
-.log-item.missed  .log-dot { background: var(--danger); }
-.log-info { flex: 1; }
-.log-name { font-size: 14px; font-weight: 600; }
-.log-time { font-family: var(--mono); font-size: 12px; color: var(--fg-2); }
-.log-status { font-family: var(--mono); font-size: 12px; font-weight: 700; text-transform: uppercase; }
-.log-item.taken   .log-status { color: var(--ok); }
-.log-item.skipped .log-status { color: var(--fg-3); }
-.log-item.missed  .log-status { color: var(--danger); }
+/* day-detail sheet rows */
+.day-dose { display: flex; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+.day-dose:last-of-type { border-bottom: none; }
+.day-dose .t { font-family: var(--mono); font-weight: 700; font-size: 14px; width: 50px; flex-shrink: 0; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.day-dose .nm { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day-empty { text-align: center; color: var(--fg-2); padding: 18px 0 22px; }
 
 /* ── SETTINGS ────────────────────────────────────────────────────────────── */
 .settings-section { margin-bottom: 26px; }

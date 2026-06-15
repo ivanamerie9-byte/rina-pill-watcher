@@ -29,10 +29,11 @@ const invoke = isTauri
   : async (cmd, args) => { console.log('[mock invoke]', cmd, args); return mockData(cmd, args); };
 
 function mockData(cmd) {
-  if (cmd === 'get_medications') return JSON.parse(localStorage.getItem('mock_meds') || '[]');
+  const ls = k => JSON.parse(localStorage.getItem(k) || '[]');
+  if (cmd === 'get_medications') return ls('mock_meds');
   if (cmd === 'get_today_schedule') return [];
-  if (cmd === 'get_history_summary') return [];
-  if (cmd === 'get_history') return [];
+  if (cmd === 'get_history_summary') return ls('mock_history_summary');
+  if (cmd === 'get_history') return ls('mock_history');
   if (cmd === 'get_schedules') return [];
   if (cmd === 'get_pending_doses') return [];
   if (cmd === 'get_settings') return { quiet_start: '23:00', quiet_end: '07:00', default_interval: 10 };
@@ -430,70 +431,117 @@ async function saveMed() {
   } catch (e) { showToast('Error: ' + e); }
 }
 
-// ── HISTORY ─────────────────────────────────────────────────────────────────
+// ── HISTORY — Apple-like month calendar ──────────────────────────────────────
+let calYear = null, calMonth = null;   // currently viewed month
+let calSummary = {};                   // "YYYY-MM-DD" -> {total,taken,skipped,missed}
+let calDayLogs = {};                   // "YYYY-MM-DD" -> [logs]
+
+const pad2 = n => (n < 10 ? '0' + n : '' + n);
+const ymd  = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
 async function loadHistory() {
   let summary, logs;
   try {
     [summary, logs] = await Promise.all([
-      invoke('get_history_summary', { days: 30 }),
-      invoke('get_history', { days: 14 }),
+      invoke('get_history_summary', { days: 400 }),
+      invoke('get_history', { days: 400 }),
     ]);
   } catch (e) { summary = []; logs = []; }
-  renderHeatmap(summary);
-  renderHistoryLog(logs);
-}
 
-function renderHeatmap(summary) {
-  const map = {};
-  summary.forEach(d => { map[d.date] = d; });
-  const cont = $('heatmap');
-  cont.innerHTML = '';
-  const today = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const data = map[key];
-    const cell = make('div', 'heatmap-cell');
-    if (data) {
-      if (data.taken === data.total && data.total > 0) cell.classList.add('green');
-      else if (data.taken > 0) cell.classList.add('yellow');
-      else if (data.missed > 0) cell.classList.add('red');
-    } else cell.classList.add('empty');
-    cell.title = key;
-    cont.appendChild(cell);
-  }
-}
-
-function renderHistoryLog(logs) {
-  const cont = $('history-log');
-  cont.innerHTML = '';
-  if (!logs.length) {
-    cont.innerHTML = `<div class="empty"><div class="face">${esc(I18N.emptyFace())}</div><p class="text-secondary text-sm">${t('no_history')}</p></div>`;
-    return;
-  }
-  let lastDay = '';
-  logs.forEach(log => {
-    const day = log.due_at.slice(0, 10);
-    if (day !== lastDay) {
-      lastDay = day;
-      cont.appendChild(make('div', 'log-day-header',
-        new Date(day + 'T12:00:00').toLocaleDateString(I18N.locale(),
-          { weekday: 'short', month: 'short', day: 'numeric' })));
-    }
-    const item = make('div', `log-item ${log.status}`);
-    const time = log.due_at.slice(11, 16);
-    const takenAt = log.taken_at ? ' · ' + log.taken_at.slice(11, 16) : '';
-    const statusTxt = log.status === 'taken' ? '✓' : log.status === 'skipped' ? t('skip') : '✕';
-    item.innerHTML = `
-      <div class="log-dot"></div>
-      <div class="log-info">
-        <div class="log-name">${esc(log.med_name)}</div>
-        <div class="log-time">${time}${takenAt}</div>
-      </div>
-      <div class="log-status">${statusTxt}</div>`;
-    cont.appendChild(item);
+  calSummary = {};
+  (summary || []).forEach(d => { calSummary[d.date] = d; });
+  calDayLogs = {};
+  (logs || []).forEach(l => {
+    const day = l.due_at.slice(0, 10);
+    (calDayLogs[day] = calDayLogs[day] || []).push(l);
   });
+
+  if (calYear == null) { const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); }
+  renderWeekdayHeader();
+  renderCalendar();
+}
+
+function renderWeekdayHeader() {
+  const cont = $('cal-weekdays');
+  cont.innerHTML = '';
+  // Monday-first, localized short names (Jan 1 2024 was a Monday)
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(2024, 0, 1 + i);
+    cont.appendChild(make('div', 'cal-weekday', d.toLocaleDateString(I18N.locale(), { weekday: 'short' })));
+  }
+}
+
+// green = everything taken · red = something missed · amber = partial · grey = all skipped
+function dayStatusClass(s) {
+  if (!s || s.total === 0) return '';
+  if (s.taken === s.total) return 'all';
+  if (s.missed > 0)        return 'missed';
+  if (s.taken > 0)         return 'partial';
+  return 'skip';
+}
+
+function shiftMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0;  calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const first = new Date(calYear, calMonth, 1);
+  $('cal-title').textContent = first.toLocaleDateString(I18N.locale(), { month: 'long', year: 'numeric' });
+
+  const grid = $('cal-grid');
+  grid.innerHTML = '';
+
+  const offset = (first.getDay() + 6) % 7;                 // Monday-first leading blanks
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const todayStr = ymd(new Date());
+  const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < offset; i++) grid.appendChild(make('div', 'cal-cell blank'));
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${calYear}-${pad2(calMonth + 1)}-${pad2(day)}`;
+    const cls = dayStatusClass(calSummary[dateStr]);
+    const cell = make('div', 'cal-cell');
+    const dayEl = make('div', 'cal-day' + (cls ? ' has ' + cls : ''), String(day));
+
+    if (new Date(calYear, calMonth, day) > todayMid) dayEl.classList.add('future');
+    if (dateStr === todayStr) dayEl.classList.add('today');
+    if (cls) dayEl.addEventListener('click', () => openDayDetail(dateStr));
+
+    cell.appendChild(dayEl);
+    grid.appendChild(cell);
+  }
+}
+
+function openDayDetail(dateStr) {
+  const logs = (calDayLogs[dateStr] || []).slice().sort((a, b) => a.due_at.localeCompare(b.due_at));
+  $('day-modal-title').textContent = new Date(dateStr + 'T12:00:00')
+    .toLocaleDateString(I18N.locale(), { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const badge = {
+    taken:    ['badge-taken', t('st_taken')],
+    skipped:  ['badge-skipped', t('st_skipped')],
+    missed:   ['badge-missed', t('st_missed')],
+    pending:  ['badge-pending', t('st_due')],
+    upcoming: ['badge-upcoming', t('st_upcoming')],
+  };
+  const body = $('day-modal-body');
+  if (!logs.length) {
+    body.innerHTML = `<div class="day-empty">${t('day_none')}</div>`;
+  } else {
+    body.innerHTML = logs.map(l => {
+      const [bc, btxt] = badge[l.status] || badge.upcoming;
+      return `<div class="day-dose">
+        <span class="t">${l.due_at.slice(11, 16)}</span>
+        <span class="nm">${esc(l.med_name)}</span>
+        <span class="status-badge ${bc}">${btxt}</span>
+      </div>`;
+    }).join('');
+  }
+  $('day-modal').classList.add('open');
 }
 
 // ── SETTINGS ────────────────────────────────────────────────────────────────
@@ -632,6 +680,14 @@ function init() {
   });
 
   $('settings-save-btn').addEventListener('click', saveSettings);
+
+  // History calendar: month nav + day-detail sheet
+  $('cal-prev').addEventListener('click', () => shiftMonth(-1));
+  $('cal-next').addEventListener('click', () => shiftMonth(1));
+  $('day-modal-close').addEventListener('click', () => $('day-modal').classList.remove('open'));
+  $('day-modal').addEventListener('click', e => {
+    if (e.target === $('day-modal')) $('day-modal').classList.remove('open');
+  });
 
   // Language toggle
   $('lang-toggle').querySelectorAll('.lang-btn').forEach(btn => {
