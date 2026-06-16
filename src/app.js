@@ -83,6 +83,34 @@ function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── Motion (GSAP, with graceful fallback) ────────────────────────────────────
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// `g` is the gsap instance, or null when GSAP failed to load / reduced-motion is on.
+const g = (typeof window.gsap !== 'undefined' && !REDUCED) ? window.gsap : null;
+if (!g) document.documentElement.classList.add('no-gsap');   // CSS keyframe fallback for sheets
+
+// Slide a bottom sheet up with a soft backdrop blur+fade; reverse on close.
+function openSheet(overlayId) {
+  const ov = $(overlayId);
+  ov.classList.add('open');
+  if (!g) return;
+  const sheet = ov.querySelector('.modal-sheet');
+  g.killTweensOf([ov, sheet]);
+  g.fromTo(ov, { opacity: 0, '--ov-blur': 0 },
+               { opacity: 1, '--ov-blur': 3, duration: 0.3, ease: 'power2.out' });
+  g.fromTo(sheet, { yPercent: 100 },
+                  { yPercent: 0, duration: 0.44, ease: 'power3.out' });
+}
+function closeSheet(overlayId, done) {
+  const ov = $(overlayId);
+  if (!g) { ov.classList.remove('open'); if (done) done(); return; }
+  const sheet = ov.querySelector('.modal-sheet');
+  g.killTweensOf([ov, sheet]);
+  g.to(sheet, { yPercent: 100, duration: 0.28, ease: 'power2.in' });
+  g.to(ov, { opacity: 0, '--ov-blur': 0, duration: 0.28, ease: 'power2.in',
+    onComplete: () => { ov.classList.remove('open'); g.set(ov, { clearProps: 'opacity' }); if (done) done(); } });
+}
+
 // ── Toast ───────────────────────────────────────────────────────────────────
 let toastTimer;
 function showToast(msg, ms = 2200) {
@@ -167,6 +195,21 @@ function renderDaySummary(items) {
     chip('taken', taken, t('sum_taken')) +
     chip('pending', due, t('sum_pending')) +
     chip('left', left, t('sum_left'));
+
+  // pop the chips in and count the numbers up (broadcast-style, per the design system)
+  if (g) {
+    g.from(cont.querySelectorAll('.chip'), {
+      opacity: 0, scale: 0.85, y: 8, duration: 0.4, ease: 'back.out(1.7)',
+      stagger: 0.07, clearProps: 'all',
+    });
+    cont.querySelectorAll('.chip .n').forEach(el => {
+      const target = +el.textContent;
+      if (target <= 0) return;
+      const o = { v: 0 };
+      g.to(o, { v: target, duration: 0.6, ease: 'power1.out',
+        onUpdate: () => { el.textContent = Math.round(o.v); } });
+    });
+  }
 }
 
 function renderPendingAlerts(items) {
@@ -252,6 +295,14 @@ function renderTodayList(items) {
     wrapper.appendChild(card);
     cont.appendChild(wrapper);
   });
+
+  // soft cascade as the day's doses arrive
+  if (g) {
+    g.from(cont.querySelectorAll('.dose-item'), {
+      opacity: 0, y: 16, duration: 0.45, ease: 'power3.out',
+      stagger: 0.06, clearProps: 'transform,opacity',
+    });
+  }
 }
 
 async function takeDose(logId) {
@@ -514,6 +565,14 @@ function renderCalendar() {
     cell.appendChild(dayEl);
     grid.appendChild(cell);
   }
+
+  // gentle pop-in of the days, rippling out from today's column
+  if (g) {
+    g.from(grid.querySelectorAll('.cal-day'), {
+      opacity: 0, scale: 0.55, duration: 0.42, ease: 'back.out(1.7)',
+      stagger: { each: 0.012, from: 'center' }, clearProps: 'transform,opacity',
+    });
+  }
 }
 
 function openDayDetail(dateStr) {
@@ -534,14 +593,21 @@ function openDayDetail(dateStr) {
   } else {
     body.innerHTML = logs.map(l => {
       const [bc, btxt] = badge[l.status] || badge.upcoming;
+      // actual moment the dose was confirmed (exact tap time), when present
+      const takenLine = (l.status === 'taken' && l.taken_at)
+        ? `<div class="day-dose-sub">${t('taken_at_label', { t: l.taken_at.slice(11, 16) })}</div>`
+        : '';
       return `<div class="day-dose">
         <span class="t">${l.due_at.slice(11, 16)}</span>
-        <span class="nm">${esc(l.med_name)}</span>
+        <div class="nm-wrap">
+          <div class="nm">${esc(l.med_name)}</div>
+          ${takenLine}
+        </div>
         <span class="status-badge ${bc}">${btxt}</span>
       </div>`;
     }).join('');
   }
-  $('day-modal').classList.add('open');
+  openSheet('day-modal');
 }
 
 // ── SETTINGS ────────────────────────────────────────────────────────────────
@@ -628,7 +694,7 @@ function init() {
   $('edit-back-btn').addEventListener('click', () => navigate(editingMedId ? 'meds' : 'home'));
   $('edit-delete-btn').addEventListener('click', () => {
     deleteTargetId = editingMedId;
-    $('delete-modal').classList.add('open');
+    openSheet('delete-modal');
   });
   $('edit-save-btn').addEventListener('click', saveMed);
 
@@ -658,23 +724,24 @@ function init() {
 
   // Delete modal
   $('delete-cancel-btn').addEventListener('click', () => {
-    $('delete-modal').classList.remove('open');
+    closeSheet('delete-modal');
     deleteTargetId = null;
   });
   $('delete-confirm-btn').addEventListener('click', async () => {
-    $('delete-modal').classList.remove('open');
-    if (deleteTargetId) {
+    const id = deleteTargetId;
+    deleteTargetId = null;
+    closeSheet('delete-modal');
+    if (id) {
       try {
-        await invoke('delete_medication', { id: deleteTargetId });
+        await invoke('delete_medication', { id });
         showToast(t('t_deleted'));
       } catch (e) { showToast('Error: ' + e); }
-      deleteTargetId = null;
       navigate('meds');
     }
   });
   $('delete-modal').addEventListener('click', e => {
     if (e.target === $('delete-modal')) {
-      $('delete-modal').classList.remove('open');
+      closeSheet('delete-modal');
       deleteTargetId = null;
     }
   });
@@ -684,9 +751,9 @@ function init() {
   // History calendar: month nav + day-detail sheet
   $('cal-prev').addEventListener('click', () => shiftMonth(-1));
   $('cal-next').addEventListener('click', () => shiftMonth(1));
-  $('day-modal-close').addEventListener('click', () => $('day-modal').classList.remove('open'));
+  $('day-modal-close').addEventListener('click', () => closeSheet('day-modal'));
   $('day-modal').addEventListener('click', e => {
-    if (e.target === $('day-modal')) $('day-modal').classList.remove('open');
+    if (e.target === $('day-modal')) closeSheet('day-modal');
   });
 
   // Language toggle

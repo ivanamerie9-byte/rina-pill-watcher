@@ -31,6 +31,7 @@ window.I18N = window.I18N || (() => {
       cal_hint: 'Tap a coloured day to see what happened ♡',
       day_none: 'Nothing was scheduled this day.',
       close: 'Close',
+      taken_at_label: 'taken at {t}',
       // settings
       settings_eyebrow: 'For Rina', settings_title: 'Settings',
       language: 'Language', quiet_hours: 'Quiet Hours',
@@ -85,6 +86,7 @@ window.I18N = window.I18N || (() => {
       cal_hint: 'いろのついた日をタップしてみてね ♡',
       day_none: 'この日はよていがなかったよ。',
       close: 'とじる',
+      taken_at_label: '{t} にのんだ',
       settings_eyebrow: 'リナのために', settings_title: 'せってい',
       language: 'げんご', quiet_hours: 'おやすみじかん',
       quiet_desc: 'おやすみじかんはつうちしないよ、リナ。',

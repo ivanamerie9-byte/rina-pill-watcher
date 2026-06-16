@@ -532,7 +532,9 @@ body::before {
 .day-dose { display: flex; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
 .day-dose:last-of-type { border-bottom: none; }
 .day-dose .t { font-family: var(--mono); font-weight: 700; font-size: 14px; width: 50px; flex-shrink: 0; color: var(--fg-2); font-variant-numeric: tabular-nums; }
-.day-dose .nm { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day-dose .nm-wrap { flex: 1; min-width: 0; }
+.day-dose .nm { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day-dose-sub { font-family: var(--mono); font-size: 11px; color: var(--ok); margin-top: 2px; }
 .day-empty { text-align: center; color: var(--fg-2); padding: 18px 0 22px; }
 
 /* ── SETTINGS ────────────────────────────────────────────────────────────── */
@@ -601,23 +603,27 @@ body::before {
   display: none;
   position: fixed; inset: 0;
   background: rgba(21,36,62,0.42);
-  backdrop-filter: blur(2px);
+  /* blur amount is driven by GSAP via --ov-blur for a smooth fade-in */
+  backdrop-filter: blur(calc(var(--ov-blur, 0) * 1px));
+  -webkit-backdrop-filter: blur(calc(var(--ov-blur, 0) * 1px));
   z-index: 300;
   align-items: flex-end; justify-content: center;
 }
-.modal-overlay.open { display: flex; animation: fade-in 0.2s; }
+.modal-overlay.open { display: flex; }
+/* Fallback animations when GSAP is unavailable or reduced-motion is on */
+.no-gsap .modal-overlay.open { animation: fade-in 0.2s; }
+.no-gsap .modal-overlay.open .modal-sheet { animation: slide-up 0.28s var(--ease); }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-up { from { transform: translateY(100%); } to { transform: none; } }
 .modal-sheet {
   background: var(--surface);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: 22px 22px calc(22px + var(--safe-bottom));
   width: 100%; max-width: 480px;
   box-shadow: var(--shadow-lg);
-  animation: slide-up 0.28s var(--ease);
 }
 .modal-handle { width: 40px; height: 4px; background: var(--edge); border-radius: 2px; margin: 0 auto 18px; }
 .modal-title { font-family: var(--display); font-size: 19px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
-@keyframes slide-up { from { transform: translateY(100%); } to { transform: none; } }
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 .text-secondary { color: var(--fg-2); }
